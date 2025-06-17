@@ -7,7 +7,7 @@ async fn main() -> std::io::Result<()> {
     let server = HttpServer::new(move || {
         App::new()
             .service(index)
-            .service(actix_files::Files::new("/", "src/source/.").show_files_listing())
+            .service(actix_files::Files::new("/site", "./src/source/.").show_files_listing())
     });
 
     server
