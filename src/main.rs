@@ -1,4 +1,4 @@
-use actix_web::{App, HttpServer};
+use actix_web::{get, App, HttpResponse, HttpServer, Responder};
 
 
 #[actix_web::main]
@@ -6,8 +6,8 @@ async fn main() -> std::io::Result<()> {
     
     let server = HttpServer::new(move || {
         App::new()
-            .service(actix_files::Files::new("/", "src/static").show_files_listing())
-        
+            .service(index)
+            .service(actix_files::Files::new("/", "src/source/.").show_files_listing())
     });
 
     server
@@ -15,4 +15,9 @@ async fn main() -> std::io::Result<()> {
         .unwrap()
         .run()
         .await
+}
+
+#[get("/")]
+async fn index() -> impl Responder {
+    HttpResponse::Ok().body("ok")
 }
