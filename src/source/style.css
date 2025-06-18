@@ -1,0 +1,10 @@
+.log_sign {
+/*	border: 1px solid RED;*/
+}
+
+.ls_item {
+	display: flex;
+/*	border: 1px solid RED;*/
+	justify-content: center;
+
+}
