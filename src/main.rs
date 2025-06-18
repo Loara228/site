@@ -1,8 +1,9 @@
 mod backend;
 
-use actix_web::{get, App, HttpResponse, HttpServer, Responder};
+use actix_web::{get, web, App, HttpResponse, HttpServer, Responder};
 use clap::Parser;
 use sqlx::{PgPool, Pool, Postgres};
+use tera::Tera;
 
 #[derive(Parser, Debug)]
 pub struct Cli
@@ -15,17 +16,19 @@ pub struct Cli
 }
 
 #[derive(Clone)]
-pub struct AppData {
+pub struct SiteData {
     pub pool: Pool<Postgres>,
+    pub tera: Tera
 }
 
-impl AppData {
-    pub async fn init_new() -> Self {
+impl SiteData {
+    pub async fn new() -> Self {
         let pool = PgPool::connect("postgres://admin:password@localhost:5432/site").await.unwrap();
         backend::db::create_tables(&pool).await;
         
         Self {
-            pool
+            pool,
+            tera: Tera::new("src/frontend/**").unwrap()
         }
     }
 }
@@ -35,16 +38,22 @@ async fn main() -> std::io::Result<()> {
 
     let cli = Cli::parse();
 
-    tracing_subscriber::fmt().with_max_level(tracing::Level::DEBUG).init();
+    tracing_subscriber::fmt().with_max_level(tracing::Level::INFO).init();
 
     let addr: &str = &cli.address.unwrap_or("127.0.0.1".to_string());
     let port: u16 = cli.port.unwrap_or(8080u16);
+
+    let data = SiteData::new().await;
     
     let server = HttpServer::new(move || {
         App::new()
-            .app_data(AppData::init_new())
+            .app_data(web::Data::new(data.clone()))
+            
+            .service(
+                web::scope("/users")
+                    .service(backend::services::users::user)
+            )
 
-            .service(index)
             .service(actix_files::Files::new("/", "./src/frontend/.").show_files_listing())
     });
 
@@ -53,9 +62,4 @@ async fn main() -> std::io::Result<()> {
         .unwrap()
         .run()
         .await
-}
-
-#[get("/test")]
-async fn index() -> impl Responder {
-    HttpResponse::Ok().body("test")
 }
